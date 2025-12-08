@@ -148,6 +148,30 @@ void serialize_response(const weather_response_t *resp, uint8_t buffer[RESP_BUFF
     offset += sizeof(net_bits);
 }
 
+void resolve_client(const struct sockaddr_in *client_addr,
+                    char *client_name, size_t name_len,
+                    char *client_ip,   size_t ip_len)
+{
+    struct in_addr addr = client_addr->sin_addr;
+
+    /* IP come stringa */
+    strncpy(client_ip, inet_ntoa(addr), ip_len - 1);
+    client_ip[ip_len - 1] = '\0';
+
+    /* Reverse DNS */
+    struct hostent *he = gethostbyaddr((char*)&addr, 4, AF_INET);
+
+    if (he != NULL) {
+        strncpy(client_name, he->h_name, name_len - 1);
+        client_name[name_len - 1] = '\0';
+    } else {
+        /* fallback */
+        strncpy(client_name, client_ip, name_len - 1);
+        client_name[name_len - 1] = '\0';
+    }
+}
+
+
 int main(int argc, char *argv[]) {
 
 
@@ -223,13 +247,10 @@ int main(int argc, char *argv[]) {
                 deserialize_request(buffer_req, &req);
 
                 /* --- DNS reverse per log --- */
-                struct in_addr addr = client_addr.sin_addr;
-                char *ip_str = inet_ntoa(addr);
+                char cname[256], cip[64];
+                resolve_client(&client_addr, cname, sizeof(cname), cip, sizeof(cip));
 
-                struct hostent *host = gethostbyaddr((char*)&addr, 4, AF_INET);
-                const char *client_name = (host != NULL) ? host->h_name : ip_str;
-
-                printf("Richiesta ricevuta da %s (ip %s): type='%c', city='%s'\n",client_name, ip_str, req.type, req.city);
+                printf("Richiesta ricevuta da %s (ip %s): type='%c', city='%s'\n",cname, cip, req.type, req.city);
 
                 /* Prepara risposta */
                 weather_response_t resp;

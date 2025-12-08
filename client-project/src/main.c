@@ -93,19 +93,24 @@ void deserialize_response(const uint8_t buffer[RESP_BUFFER_SIZE], weather_respon
 
 /* --- RISOLUZIONE DNS: gethostbyname / gethostbyaddr --- */
 /* host_name può essere hostname (es. "localhost") o IP (es. "127.0.0.1") */
-int resolve_server(const char *host_name, struct in_addr *out_addr, char *resolved_name, size_t resolved_name_len, char *resolved_ip, size_t resolved_ip_len)
+int resolve_server(const char *host_name,struct in_addr *out_addr,char *resolved_name, size_t resolved_name_len, char *resolved_ip,   size_t resolved_ip_len)
 {
     struct hostent *remoteHost;
     struct in_addr addr;
 
+    /* ============================================
+       1) SE INIZIA CON LETTERA → È UN HOSTNAME
+       ============================================ */
     if (isalpha((unsigned char)host_name[0])) {
-        /* host address è un nome simbolico  es. "localhost" */
+
         remoteHost = gethostbyname(host_name);
+
         if (remoteHost == NULL) {
-            fprintf(stderr, "gethostbyname() failed.\n");
+            fprintf(stderr, "gethostbyname() failed for %s\n", host_name);
             return 0;
         }
 
+        /* Ricava l’indirizzo IP dal risultato */
         struct in_addr *ina = (struct in_addr*)remoteHost->h_addr_list[0];
         *out_addr = *ina;
 
@@ -113,70 +118,64 @@ int resolve_server(const char *host_name, struct in_addr *out_addr, char *resolv
         strncpy(resolved_ip, inet_ntoa(*ina), resolved_ip_len - 1);
         resolved_ip[resolved_ip_len - 1] = '\0';
 
-        /* nome canonico */
+        /* Nome canonico */
+        strncpy(resolved_name, remoteHost->h_name, resolved_name_len - 1);
+        resolved_name[resolved_name_len - 1] = '\0';
+
+        return 1;
+    }
+
+    /* ============================================
+       2) ALTRIMENTI → PROVO A TRATTARLO COME IP
+       ============================================ */
+    addr.s_addr = inet_addr(host_name);
+
+    if (addr.s_addr == INADDR_NONE) {
+        fprintf(stderr, "Indirizzo IP non valido: %s\n", host_name);
+        return 0;
+    }
+
+    /* Reverse DNS */
+    remoteHost = gethostbyaddr((char*)&addr, 4, AF_INET);
+
+    if (remoteHost != NULL) {
         strncpy(resolved_name, remoteHost->h_name, resolved_name_len - 1);
         resolved_name[resolved_name_len - 1] = '\0';
     } else {
-        /* host address è un indirizzo IP in stringa, es. "127.0.0.1" */
-        addr.s_addr = inet_addr(host_name);
-        if (addr.s_addr == INADDR_NONE) {
-            fprintf(stderr, "Indirizzo IP non valido.\n");
-            return 0;
-        }
-        *out_addr = addr;
-
-        /* reverse lookup */
-        remoteHost = gethostbyaddr((char*)&addr, 4, AF_INET);
-        if (remoteHost != NULL) {
-            strncpy(resolved_name, remoteHost->h_name, resolved_name_len - 1);
-            resolved_name[resolved_name_len - 1] = '\0';
-        } else {
-            /* fallback: usiamo la stringa passata */
-            strncpy(resolved_name, host_name, resolved_name_len - 1);
-            resolved_name[resolved_name_len - 1] = '\0';
-        }
-
-        /* IP stringa = quello passato dall'utente */
-        strncpy(resolved_ip, host_name, resolved_ip_len - 1);
-        resolved_ip[resolved_ip_len - 1] = '\0';
+        /* Se reverse DNS fallisce → usa l’IP come nome */
+        strncpy(resolved_name, host_name, resolved_name_len - 1);
+        resolved_name[resolved_name_len - 1] = '\0';
     }
+
+    /* IP stringa = quello passato */
+    strncpy(resolved_ip, host_name, resolved_ip_len - 1);
+    resolved_ip[resolved_ip_len - 1] = '\0';
+
+    *out_addr = addr;
 
     return 1;
 }
 
-/* --- PARSING ARGOMENTI --- */
-/*
- * Restituisce 1 se ok, 0 se errore.
- * - server_name: buffer per l'argomento -s (hostname o IP); default "localhost"
- * - port: porta (default SERVER_PORT)
- * - type: singolo carattere di richiesta
- * - city: stringa città (max CITY_MAX-1)
- */
-int parse_args(int argc, char *argv[], char *server_name, int *port,
-               char *type, char *city)
+
+/* PARSING ARGOMENTI */
+
+int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *city)
 {
     int found_r = 0;
-
-    /* default */
-    strncpy(server_name, DEFAULT_HOST, 63);
-    server_name[63] = '\0';
-    *port = SERVER_PORT;
-    *type = 0;
-    city[0] = '\0';
 
     for (int i = 1; i < argc; i++) {
 
         if (strcmp(argv[i], "-s") == 0) {
             if (i + 1 >= argc) return 0;
-            strncpy(server_name, argv[i+1], 63);
-            server_name[63] = '\0';
+            strncpy(server_ip, argv[i + 1], 63);
+            server_ip[63] = '\0';
             i++;
             continue;
         }
 
         if (strcmp(argv[i], "-p") == 0) {
             if (i + 1 >= argc) return 0;
-            *port = atoi(argv[i+1]);
+            *port = atoi(argv[i + 1]);
             if (*port <= 0 || *port > 65535) return 0;
             i++;
             continue;
@@ -188,17 +187,15 @@ int parse_args(int argc, char *argv[], char *server_name, int *port,
             /* -r deve essere l'ultimo parametro */
             if (i + 2 != argc) return 0;
 
-            char *req_str = argv[i+1];
+            char *req_str = argv[i + 1];
 
-            /* niente tabulazioni */
-            for (char *p = req_str; *p; ++p) {
-                if (*p == '\t') {
-                    fprintf(stderr, "Errore: la richiesta non può contenere tabulazioni.\n");
-                    return 0;
-                }
+            /* niente tabulazioni nella richiesta */
+            if (strchr(req_str, '\t') != NULL) {
+                fprintf(stderr, "Errore: la richiesta non può contenere tabulazioni.\n");
+                return 0;
             }
 
-            /* salta eventuali spazi iniziali */
+            /* salta spazi iniziali */
             char *p = req_str;
             while (*p == ' ') p++;
 
@@ -209,16 +206,13 @@ int parse_args(int argc, char *argv[], char *server_name, int *port,
 
             /* trova primo spazio dopo il token tipo */
             char *space = strchr(p, ' ');
-
             if (space == NULL) {
-                /* niente spazio: manca la città */
                 fprintf(stderr, "Errore: formato richiesta non valido (manca la città).\n");
                 return 0;
             }
 
-            /* lunghezza del primo token (type) */
-            size_t token_len = (size_t)(space - p);
-            if (token_len != 1) {
+            /* il primo token (type) deve essere lungo 1 */
+            if (space - p != 1) {
                 fprintf(stderr, "Errore: il primo token deve essere un singolo carattere.\n");
                 return 0;
             }
@@ -226,7 +220,7 @@ int parse_args(int argc, char *argv[], char *server_name, int *port,
             *type = p[0];
 
             /* city = tutto ciò che segue, saltando spazi multipli */
-            char *city_start = space;
+            char *city_start = space + 1;
             while (*city_start == ' ') city_start++;
 
             if (*city_start == '\0') {
@@ -234,39 +228,28 @@ int parse_args(int argc, char *argv[], char *server_name, int *port,
                 return 0;
             }
 
-            /* copia city, eventualmente rimuovendo spazi finali */
-            char temp_city[256];
-            strncpy(temp_city, city_start, sizeof(temp_city) - 1);
-            temp_city[sizeof(temp_city) - 1] = '\0';
-
-            /* rimuovi spazi finali */
-            size_t len = strlen(temp_city);
-            while (len > 0 && temp_city[len - 1] == ' ')
-                temp_city[--len] = '\0';
-
-            if (len == 0) {
-                fprintf(stderr, "Errore: nome città vuoto.\n");
+            /* controllo lunghezza città (max CITY_MAX-1) */
+            if (strlen(city_start) >= CITY_MAX) {
+                fprintf(stderr, "Errore: nome città troppo lungo (massimo %d caratteri).\n",
+                        CITY_MAX - 1);
                 return 0;
             }
 
-            if (len >= CITY_MAX) {
-                fprintf(stderr, "Errore: nome città troppo lungo (massimo %d caratteri).\n", CITY_MAX - 1);
-                return 0;
-            }
-
-            strncpy(city, temp_city, CITY_MAX);
+            strncpy(city, city_start, CITY_MAX);
             city[CITY_MAX - 1] = '\0';
 
             found_r = 1;
             break;
         }
 
-        /* parametro sconosciuto */
+        /* opzione sconosciuta */
         return 0;
     }
 
     return found_r;
 }
+
+
 int main(int argc, char *argv[]) {
 
 	// TODO: Implement client logic
@@ -286,7 +269,7 @@ int main(int argc, char *argv[]) {
     char type = 0;
     char city[CITY_MAX];
 
-    if (!parse_args(argc, argv, server_name, &port, &type, city)) {
+    if (!parse(argc, argv, server_name, &port, &type, city)) {
         print_usage(argv[0]);
         clearwinsock();
         return EXIT_FAILURE;
