@@ -278,6 +278,18 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    // dopo parse(...)
+    maiuscola(city); // se ti serve formattata
+
+    for (char *p = city; *p; ++p) {
+        if (!isalpha((unsigned char)*p) && *p != ' ' && *p != '-') {
+            printf("Città non disponibile\n");
+            clearwinsock();
+            return EXIT_SUCCESS;   // nessuna richiesta al server
+        }
+    }
+
+
     /* Risoluzione DNS del server */
     struct in_addr server_addr_in;
     char server_canonical_name[256];

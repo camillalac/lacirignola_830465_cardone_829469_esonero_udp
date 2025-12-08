@@ -66,8 +66,9 @@ int is_valid_city(const char* c) {
     for (char *p = lower; *p; ++p)
         *p = (char)tolower((unsigned char)*p);
 
-    for (int i = 0; i < 11; i++) {
-        if (strcmp(lower, list[i]) == 0)
+    for (int i = 0; i < 10; i++) {
+        if (strcmp(lower, list[
+							   i]) == 0)
             return 1; // città trovata valida
     }
 
