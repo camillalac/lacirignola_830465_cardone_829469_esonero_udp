@@ -167,8 +167,8 @@ int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *
 
         if (strcmp(argv[i], "-s") == 0) {
             if (i + 1 >= argc) return 0;
-            strncpy(server_ip, argv[i + 1], 63);
-            server_ip[63] = '\0';
+            strncpy(server_ip, argv[i+1], sizeof(server_ip) - 1);
+            server_ip[sizeof(server_ip) - 1] = '\0';
             i++;
             continue;
         }
@@ -267,10 +267,6 @@ int main(int argc, char *argv[]) {
     int port;
     char type = 0;
     char city[CITY_MAX];
-
-    strncpy(server_name, DEFAULT_HOST , sizeof(server_name) - 1);
-    server_name[sizeof(server_name) - 1] = '\0';
-
     port = SERVER_PORT;        // 56700 di default
 
     if (!parse(argc, argv, server_name, &port, &type, city)) {
