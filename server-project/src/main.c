@@ -100,7 +100,7 @@ int valid_type(char t) {
 }
 
 
-/* --- parsing porta da linea di comando --- */
+/* parsing porta da linea di comando */
 int parse_port(int argc, char *argv[], int *port) {
 
     if (argc == 1) return 1;  /* uso porta di default */
@@ -121,6 +121,7 @@ int parse_port(int argc, char *argv[], int *port) {
     return 1;
 }
 
+/* DESERIALIZZAZIONE */
 void deserialize_request(const uint8_t buffer[REQ_BUFFER_SIZE], weather_request_t *req) {
     size_t offset = 0;
 
@@ -128,10 +129,11 @@ void deserialize_request(const uint8_t buffer[REQ_BUFFER_SIZE], weather_request_
     offset += sizeof(char);
 
     memcpy(req->city, &buffer[offset], CITY_MAX);
-    req->city[CITY_MAX - 1] = '\0'; /* sicurezza */
+    req->city[CITY_MAX - 1] = '\0';
     offset += CITY_MAX;
 }
 
+/* SERIALIZZAZIONE */
 void serialize_response(const weather_response_t *resp, uint8_t buffer[RESP_BUFFER_SIZE]) {
     size_t offset = 0;
 
@@ -152,9 +154,7 @@ void serialize_response(const weather_response_t *resp, uint8_t buffer[RESP_BUFF
     offset += sizeof(net_bits);
 }
 
-void resolve_client(const struct sockaddr_in *client_addr,
-                    char *client_name, size_t name_len,
-                    char *client_ip,   size_t ip_len)
+void resolve_client(const struct sockaddr_in *client_addr, char *client_name, size_t name_len, char *client_ip,   size_t ip_len)
 {
     struct in_addr addr = client_addr->sin_addr;
 
@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
 
          printf("Server meteo UDP in ascolto sulla porta %d...\n", port);
 	
-         /* 4) LOOP PRINCIPALE (stateless) */
+         /* 4) LOOP PRINCIPALE  */
             while (1) {
                 struct sockaddr_in client_addr;
         #if defined WIN32
@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
                 int recvMsgSize = recvfrom(my_socket, (char*)buffer_req, REQ_BUFFER_SIZE, 0,(struct sockaddr*)&client_addr, &client_len);
                 if (recvMsgSize < 0) {
                     errorhandler("recvfrom() failed\n");
-                    /* continuiamo a servire altri client */
+                    /* continuiamo con altri client */
                     continue;
                 }
 
@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
                 memset(&req, 0, sizeof(req));
                 deserialize_request(buffer_req, &req);
 
-                /* --- DNS reverse per log --- */
+                /* DNS reverse*/
                 char cname[256], cip[64];
                 resolve_client(&client_addr, cname, sizeof(cname), cip, sizeof(cip));
 
@@ -281,7 +281,7 @@ int main(int argc, char *argv[]) {
                     resp.value  = 0.0f;
                 }
                 else {
-                    /* TUTTO OK: genera valore meteo */
+                    /* genera valore meteo */
                     switch (req.type) {
                         case TYPE_TEMP:
                             resp.value = get_temperature();
@@ -319,4 +319,4 @@ int main(int argc, char *argv[]) {
 	closesocket(my_socket);
 	clearwinsock();
 	return 0;
-} // main end
+}
