@@ -44,14 +44,13 @@ void print_usage(const char *progname) {
 }
 
 /* Trasforma una stringa in Parola */
+
 void maiuscola(char *s) {
     int start = 1;
     for (int i = 0; s[i]; i++) {
-        if (isspace((unsigned char)s[i])) {
-            start = 1;
-        } else {
-            s[i] = start ? (char)toupper((unsigned char)s[i])
-                         : (char)tolower((unsigned char)s[i]);
+        if (isspace(s[i])) start = 1;
+        else {
+            s[i] = start ? toupper(s[i]) : tolower(s[i]);
             start = 0;
         }
     }

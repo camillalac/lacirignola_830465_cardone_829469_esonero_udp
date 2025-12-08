@@ -32,7 +32,7 @@
 #define STATUS_BAD_REQUEST   2
 
 
-#define REQ_BUFFER_SIZE (1 + CITY_MAX)
+#define REQ_BUFFER_SIZE (sizeof(char) + CITY_MAX)
 #define RESP_BUFFER_SIZE (sizeof(uint32_t) + sizeof(char) + sizeof(float))
 
 /*
