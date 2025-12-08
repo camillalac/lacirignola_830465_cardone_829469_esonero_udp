@@ -57,8 +57,7 @@ float get_pressure()
 int is_valid_city(const char* c) {
     const char* list[] = {
         "bari","roma","milano","napoli","torino",
-        "palermo","genova","bologna","firenze","venezia","reggio calabria"
-    };
+        "palermo","genova","bologna","firenze","venezia"};
 
     char lower[CITY_MAX];
     strncpy(lower, c, CITY_MAX);
@@ -80,19 +79,20 @@ int is_valid_city_syntax(const char *c) {
         unsigned char ch = (unsigned char)*p;
 
         if (ch == '\t') {
-            return 0;  // tab vietato
+            return 0;  // tab vietata
         }
 
         if (ch == ' ' || ch == '\'') {
-            continue;  // OK
+            continue;
         }
 
-        if (!isalpha(ch)) {
-            return 0;  // caratteri speciali vietati
+        if (!isalpha(ch) && !isdigit(ch)) {
+            return 0;
         }
     }
     return 1;
 }
+
 
 int valid_type(char t) {
     return (t == TYPE_TEMP || t == TYPE_HUM || t == TYPE_WIND || t == TYPE_PRESS);
