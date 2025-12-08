@@ -268,8 +268,9 @@ int main(int argc, char *argv[]) {
     char type = 0;
     char city[CITY_MAX];
 
-    strncpy(server_name, DEFAULT_HOST , 63);
-    server_name[63] = '\0';
+    strncpy(server_name, DEFAULT_HOST , sizeof(server_name) - 1);
+    server_name[sizeof(server_name) - 1] = '\0';
+
     port = SERVER_PORT;        // 56700 di default
 
     if (!parse(argc, argv, server_name, &port, &type, city)) {
