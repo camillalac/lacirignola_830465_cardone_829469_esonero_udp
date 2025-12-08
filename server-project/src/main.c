@@ -25,7 +25,6 @@
 #include <ctype.h>
 #include <time.h>
 #include <string.h>
-#include <stdint.h>
 #include "protocol.h"
 
 #define NO_ERROR 0
