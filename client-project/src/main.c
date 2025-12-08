@@ -268,6 +268,10 @@ int main(int argc, char *argv[]) {
     char type = 0;
     char city[CITY_MAX];
 
+    strncpy(server_name, DEFAULT_HOST , 63);
+    server_name[63] = '\0';
+    port = SERVER_PORT;        // 56700 di default
+
     if (!parse(argc, argv, server_name, &port, &type, city)) {
         print_usage(argv[0]);
         clearwinsock();
