@@ -93,10 +93,7 @@ void deserialize_response(const uint8_t buffer[RESP_BUFFER_SIZE], weather_respon
 
 /* --- RISOLUZIONE DNS: gethostbyname / gethostbyaddr --- */
 /* host_name può essere hostname (es. "localhost") o IP (es. "127.0.0.1") */
-int resolve_server(const char *host_name,
-                   struct in_addr *out_addr,
-                   char *resolved_name, size_t resolved_name_len,
-                   char *resolved_ip, size_t resolved_ip_len)
+int resolve_server(const char *host_name, struct in_addr *out_addr, char *resolved_name, size_t resolved_name_len, char *resolved_ip, size_t resolved_ip_len)
 {
     struct hostent *remoteHost;
     struct in_addr addr;
@@ -300,15 +297,12 @@ int main(int argc, char *argv[]) {
     char server_canonical_name[256];
     char server_ip_str[64];
 
-    if (!resolve_server(server_name,
-                        &server_addr_in,
-                        server_canonical_name, sizeof(server_canonical_name),
-                        server_ip_str, sizeof(server_ip_str))) {
+    if (!resolve_server(server_name,&server_addr_in,server_canonical_name, sizeof(server_canonical_name), server_ip_str, sizeof(server_ip_str))) {
         clearwinsock();
         return EXIT_FAILURE;
     }
 
-    /* Creazione socket UDP */
+    /* CREAZIONE SOCKET */
     int sock = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sock < 0) {
         errorhandler("Creazione della socket fallita.\n");
@@ -322,7 +316,7 @@ int main(int argc, char *argv[]) {
     sad.sin_port   = htons(port);
     sad.sin_addr   = server_addr_in;
 
-    /* Prepara request */
+    /* RICHIESTA */
     weather_request_t req;
     memset(&req, 0, sizeof(req));
     req.type = type;
@@ -333,15 +327,14 @@ int main(int argc, char *argv[]) {
     serialize_request(&req, buffer_req);
 
     /* Invia richiesta al server */
-    if (sendto(sock, (const char*)buffer_req, REQ_BUFFER_SIZE, 0,
-               (struct sockaddr*)&sad, sizeof(sad)) != REQ_BUFFER_SIZE) {
+    if (sendto(sock, (const char*)buffer_req, REQ_BUFFER_SIZE, 0, (struct sockaddr*)&sad, sizeof(sad)) != REQ_BUFFER_SIZE) {
         errorhandler("sendto() fallita.\n");
         closesocket(sock);
         clearwinsock();
         return EXIT_FAILURE;
     }
 
-    /* Riceve risposta */
+    /* RISPOSTA SERVER */
     struct sockaddr_in fromAddr;
 #if defined WIN32
     int fromSize = sizeof(fromAddr);
@@ -350,8 +343,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     uint8_t buffer_resp[RESP_BUFFER_SIZE];
-    int respLen = recvfrom(sock, (char*)buffer_resp, RESP_BUFFER_SIZE, 0,
-                           (struct sockaddr*)&fromAddr, &fromSize);
+    int respLen = recvfrom(sock, (char*)buffer_resp, RESP_BUFFER_SIZE, 0, (struct sockaddr*)&fromAddr, &fromSize);
 
     if (respLen < 0) {
         errorhandler("recvfrom() fallita.\n");
@@ -388,12 +380,11 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    /* Formatta città in Title Case */
+    /* Formatta città */
     maiuscola(city);
 
-    /* Output ESATTAMENTE come da traccia */
-    printf("Ricevuto risultato dal server %s (ip %s). ",
-           server_canonical_name, server_ip_str);
+    /* COSTRUZIONE MESSAGGIO */
+    printf("Ricevuto risultato dal server %s (ip %s). ",server_canonical_name, server_ip_str);
 
     if (resp.status == STATUS_OK) {
         switch (resp.type) {
@@ -418,8 +409,11 @@ int main(int argc, char *argv[]) {
     } else {
         printf("Richiesta non valida\n");
     }
-	printf("Client terminated.\n");
 
+
+    /* CHIUSURA CLIENT */
+	printf("Client terminated.\n");
+	closesocket(sock);
 	clearwinsock();
 	return 0;
 } // main end

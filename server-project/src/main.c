@@ -44,10 +44,14 @@ static float frand(float a, float b) {
     return a + ((float) rand() / RAND_MAX) * (b - a);
 }
 
-float get_temperature(void) { return frand(-10.0f, 40.0f); }
-float get_humidity(void)    { return frand( 20.0f,100.0f); }
-float get_wind(void)        { return frand(  0.0f,100.0f); }
-float get_pressure(void)    { return frand(950.0f,1050.0f); }
+float get_temperature()
+{ return frand(-10.0f, 40.0f); }
+float get_humidity()
+{ return frand( 20.0f,100.0f); }
+float get_wind()
+{ return frand(  0.0f,100.0f); }
+float get_pressure()
+{ return frand(950.0f,1050.0f); }
 
 /* Lista città supportate*/
 int is_valid_city(const char* c) {
@@ -65,10 +69,10 @@ int is_valid_city(const char* c) {
 
     for (int i = 0; i < 11; i++) {
         if (strcmp(lower, list[i]) == 0)
-            return 1;
+            return 1; // città trovata valida
     }
 
-    return 0;
+    return 0; // città non trovata
 }
 
 int is_valid_city_syntax(const char *c) {
@@ -91,8 +95,7 @@ int is_valid_city_syntax(const char *c) {
 }
 
 int valid_type(char t) {
-    return (t == TYPE_TEMP || t == TYPE_HUM ||
-            t == TYPE_WIND || t == TYPE_PRESS);
+    return (t == TYPE_TEMP || t == TYPE_HUM || t == TYPE_WIND || t == TYPE_PRESS);
 }
 
 
@@ -134,7 +137,7 @@ void serialize_response(const weather_response_t *resp, uint8_t buffer[RESP_BUFF
     offset += sizeof(net_status);
 
     /* type */
-    buffer[offset] = (uint8_t)resp->type;
+    memcpy(buffer + offset, &resp->type, sizeof(char));
     offset += sizeof(char);
 
     /* value (float) */
@@ -147,7 +150,6 @@ void serialize_response(const weather_response_t *resp, uint8_t buffer[RESP_BUFF
 
 int main(int argc, char *argv[]) {
 
-	// TODO: Implement server logic
 
 #if defined WIN32
 	// Initialize Winsock

@@ -33,7 +33,7 @@
 
 
 #define REQ_BUFFER_SIZE (1 + CITY_MAX)
-#define RESP_BUFFER_SIZE (sizeof(uint32_t) + sizeof(char) + sizeof(uint32_t))
+#define RESP_BUFFER_SIZE (sizeof(uint32_t) + sizeof(char) + sizeof(float))
 
 /*
  * ============================================================================
