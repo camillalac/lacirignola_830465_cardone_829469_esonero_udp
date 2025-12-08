@@ -43,7 +43,7 @@ void print_usage(const char *progname) {
     printf("Uso corretto: %s [-s server] [-p port] -r \"type city\"\n", progname);
 }
 
-/* Trasforma una stringa in "Title Case" parola per parola */
+/* Trasforma una stringa in Parola */
 void maiuscola(char *s) {
     int start = 1;
     for (int i = 0; s[i]; i++) {
@@ -57,7 +57,7 @@ void maiuscola(char *s) {
     }
 }
 
-/* --- SERIALIZZAZIONE / DESERIALIZZAZIONE --- */
+/* SERIALIZZAZIONE */
 
 void serialize_request(const weather_request_t *req, uint8_t buffer[REQ_BUFFER_SIZE]) {
     size_t offset = 0;
@@ -70,6 +70,7 @@ void serialize_request(const weather_request_t *req, uint8_t buffer[REQ_BUFFER_S
     offset += CITY_MAX;
 }
 
+/* DESERIALIZZAZIONE */
 void deserialize_response(const uint8_t buffer[RESP_BUFFER_SIZE], weather_response_t *resp) {
     size_t offset = 0;
 
@@ -91,16 +92,13 @@ void deserialize_response(const uint8_t buffer[RESP_BUFFER_SIZE], weather_respon
     offset += sizeof(net_bits);
 }
 
-/* --- RISOLUZIONE DNS: gethostbyname / gethostbyaddr --- */
-/* host_name può essere hostname (es. "localhost") o IP (es. "127.0.0.1") */
+/* RISOLUZIONE DNS: gethostbyname / gethostbyaddr */
 int resolve_server(const char *host_name,struct in_addr *out_addr,char *resolved_name, size_t resolved_name_len, char *resolved_ip,   size_t resolved_ip_len)
 {
     struct hostent *remoteHost;
     struct in_addr addr;
 
-    /* ============================================
-       1) SE INIZIA CON LETTERA → È UN HOSTNAME
-       ============================================ */
+    /* SE INIZIA CON LETTERA È UN HOSTNAME */
     if (isalpha((unsigned char)host_name[0])) {
 
         remoteHost = gethostbyname(host_name);
@@ -125,9 +123,7 @@ int resolve_server(const char *host_name,struct in_addr *out_addr,char *resolved
         return 1;
     }
 
-    /* ============================================
-       2) ALTRIMENTI → PROVO A TRATTARLO COME IP
-       ============================================ */
+    /*  ALTRIMENTI PROVO A TRATTARLO COME IP*/
     addr.s_addr = inet_addr(host_name);
 
     if (addr.s_addr == INADDR_NONE) {
@@ -142,7 +138,7 @@ int resolve_server(const char *host_name,struct in_addr *out_addr,char *resolved
         strncpy(resolved_name, remoteHost->h_name, resolved_name_len - 1);
         resolved_name[resolved_name_len - 1] = '\0';
     } else {
-        /* Se reverse DNS fallisce → usa l’IP come nome */
+        /* Se reverse DNS fallisce usa l’IP come nome */
         strncpy(resolved_name, host_name, resolved_name_len - 1);
         resolved_name[resolved_name_len - 1] = '\0';
     }
@@ -165,13 +161,12 @@ int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *
 
     for (int i = 1; i < argc; i++) {
 
-        if (strcmp(argv[i], "-s") == 0) {
-            if (i + 1 >= argc) return 0;
-            strncpy(server_ip, argv[i+1], sizeof(server_ip) - 1);
-            server_ip[sizeof(server_ip) - 1] = '\0';
-            i++;
-            continue;
-        }
+    	if (strcmp(argv[i], "-s") == 0) {
+    	    if (i + 1 >= argc) return 0;
+    	    snprintf(server_ip, 64, "%s", argv[i+1]);
+    	    i++;
+    	    continue;
+    	}
 
         if (strcmp(argv[i], "-p") == 0) {
             if (i + 1 >= argc) return 0;
@@ -267,7 +262,11 @@ int main(int argc, char *argv[]) {
     int port;
     char type = 0;
     char city[CITY_MAX];
-    port = SERVER_PORT;        // 56700 di default
+
+    strncpy(server_name, DEFAULT_HOST, sizeof(server_name) - 1);
+    server_name[sizeof(server_name) - 1] = '\0';
+
+    port = SERVER_PORT;// 56700 di default
 
     if (!parse(argc, argv, server_name, &port, &type, city)) {
         print_usage(argv[0]);
