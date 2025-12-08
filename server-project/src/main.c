@@ -111,8 +111,11 @@ int parse_port(int argc, char *argv[], int *port) {
     if (argv[2][0] == '-') return 0;
 
     int p = atoi(argv[2]);
-    if (p <= 0 || p > 65535) return 0;
-
+    if (p <= 0 || p > 65535)
+    {
+    	printf("La porta deve essere compresa tra 0 e 65535\n");
+    	return 0;
+    }
     *port = p;
     return 1;
 }

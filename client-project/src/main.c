@@ -252,7 +252,6 @@ int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *
 
 int main(int argc, char *argv[]) {
 
-	// TODO: Implement client logic
 
 #if defined WIN32
 	// Initialize Winsock
@@ -275,7 +274,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    /* Risoluzione DNS del server (-s) */
+    /* Risoluzione DNS del server */
     struct in_addr server_addr_in;
     char server_canonical_name[256];
     char server_ip_str[64];
@@ -399,4 +398,4 @@ int main(int argc, char *argv[]) {
 	closesocket(sock);
 	clearwinsock();
 	return 0;
-} // main end
+}
