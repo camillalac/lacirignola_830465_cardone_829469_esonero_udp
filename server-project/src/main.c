@@ -39,6 +39,7 @@ void errorhandler(const char *errorMessage) {
     fprintf(stderr, "%s", errorMessage);
 }
 
+// ---- funzioni per simulare dati meteo ----
 static float frand(float a, float b) {
     return a + ((float) rand() / RAND_MAX) * (b - a);
 }
@@ -62,12 +63,11 @@ int is_valid_city(const char* c) {
     strncpy(lower, c, CITY_MAX);
     lower[CITY_MAX - 1] = '\0';
 
-    for (char *p = lower; *p; ++p)
-        *p = (char)tolower((unsigned char)*p);
+    for (char* p = lower; *p; p++)
+            *p = tolower(*p);
 
     for (int i = 0; i < 10; i++) {
-        if (strcmp(lower, list[
-							   i]) == 0)
+        if (strcmp(lower, list[i]) == 0)
             return 1; // città trovata valida
     }
 
@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
 
          printf("Server meteo UDP in ascolto sulla porta %d...\n", port);
 	
-         /* 4) LOOP PRINCIPALE  */
+         /* LOOP PRINCIPALE  */
             while (1) {
                 struct sockaddr_in client_addr;
         #if defined WIN32
@@ -315,7 +315,8 @@ int main(int argc, char *argv[]) {
 
 	printf("Server terminated.\n");
 
+	//CHIUSURA SOCKET
 	closesocket(my_socket);
 	clearwinsock();
 	return 0;
-}
+} // main end

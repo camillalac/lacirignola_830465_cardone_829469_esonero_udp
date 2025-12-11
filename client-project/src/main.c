@@ -152,7 +152,7 @@ int resolve_server(const char *host_name,struct in_addr *out_addr,char *resolved
 }
 
 
-/* PARSING ARGOMENTI */
+
 
 int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *city)
 {
@@ -160,13 +160,16 @@ int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *
 
     for (int i = 1; i < argc; i++) {
 
-    	if (strcmp(argv[i], "-s") == 0) {
-    	    if (i + 1 >= argc) return 0;
-    	    snprintf(server_ip, 64, "%s", argv[i+1]);
-    	    i++;
-    	    continue;
-    	}
+        /* -s server */
+        if (strcmp(argv[i], "-s") == 0) {
+            if (i + 1 >= argc) return 0;
+            /* copio il nome del server (max 63 char + '\0') */
+            snprintf(server_ip, 64, "%s", argv[i + 1]);
+            i++;
+            continue;
+        }
 
+        /* -p port */
         if (strcmp(argv[i], "-p") == 0) {
             if (i + 1 >= argc) return 0;
             *port = atoi(argv[i + 1]);
@@ -175,21 +178,22 @@ int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *
             continue;
         }
 
+        /* -r "type city" */
         if (strcmp(argv[i], "-r") == 0) {
             if (i + 1 >= argc) return 0;
 
-            /* -r deve essere l'ultimo parametro */
             if (i + 2 != argc) return 0;
 
             char *req_str = argv[i + 1];
 
-            /* niente tabulazioni nella richiesta */
-            if (strchr(req_str, '\t') != NULL) {
-                fprintf(stderr, "Errore: la richiesta non può contenere tabulazioni.\n");
-                return 0;
+            /* no tabulazioni '\t' */
+            for (char *q = req_str; *q; q++) {
+                if (*q == '\t' || (*q == '\\' && q[1] == 't')) {
+                    fprintf(stderr, "Errore: la richiesta non può contenere tabulazioni.\n");
+                    return 0;
+                }
             }
 
-            /* salta spazi iniziali */
             char *p = req_str;
             while (*p == ' ') p++;
 
@@ -198,14 +202,13 @@ int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *
                 return 0;
             }
 
-            /* trova primo spazio dopo il token tipo */
             char *space = strchr(p, ' ');
             if (space == NULL) {
                 fprintf(stderr, "Errore: formato richiesta non valido (manca la città).\n");
                 return 0;
             }
 
-            /* il primo token (type) deve essere lungo 1 */
+            /* Il primo token (type) deve essere UN SOLO carattere */
             if (space - p != 1) {
                 fprintf(stderr, "Errore: il primo token deve essere un singolo carattere.\n");
                 return 0;
@@ -213,7 +216,7 @@ int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *
 
             *type = p[0];
 
-            /* city = tutto ciò che segue, saltando spazi multipli */
+            /* City = tutto ciò che segue, saltando spazi multipli */
             char *city_start = space + 1;
             while (*city_start == ' ') city_start++;
 
@@ -222,13 +225,16 @@ int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *
                 return 0;
             }
 
-            /* controllo lunghezza città (max CITY_MAX-1) */
-            if (strlen(city_start) >= CITY_MAX) {
-                fprintf(stderr, "Errore: nome città troppo lungo (massimo %d caratteri).\n",
+            /* Controllo lunghezza città (max CITY_MAX - 1) */
+            size_t len = strlen(city_start);
+            if (len >= CITY_MAX) {
+                fprintf(stderr,
+                        "Errore: nome città troppo lungo (massimo %d caratteri).\n",
                         CITY_MAX - 1);
                 return 0;
             }
 
+            /* Copia city */
             strncpy(city, city_start, CITY_MAX);
             city[CITY_MAX - 1] = '\0';
 
@@ -242,6 +248,7 @@ int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *
 
     return found_r;
 }
+
 
 
 int main(int argc, char *argv[]) {
