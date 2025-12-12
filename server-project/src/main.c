@@ -236,7 +236,6 @@ int main(int argc, char *argv[]) {
                 int recvMsgSize = recvfrom(my_socket, (char*)buffer_req, REQ_BUFFER_SIZE, 0,(struct sockaddr*)&client_addr, &client_len);
                 if (recvMsgSize < 0) {
                     errorhandler("recvfrom() failed\n");
-                    /* continuiamo con altri client */
                     continue;
                 }
 

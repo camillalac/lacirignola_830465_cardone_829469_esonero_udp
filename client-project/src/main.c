@@ -122,7 +122,7 @@ int resolve_server(const char *host_name,struct in_addr *out_addr,char *resolved
         return 1;
     }
 
-    /*  ALTRIMENTI PROVO A TRATTARLO COME IP*/
+    /*  ALTRIMENTI IP*/
     addr.s_addr = inet_addr(host_name);
 
     if (addr.s_addr == INADDR_NONE) {
@@ -264,13 +264,12 @@ int main(int argc, char *argv[]) {
 	}
 #endif
 
-    char server_name[64];
     int port;
     char type = 0;
     char city[CITY_MAX];
 
-    strncpy(server_name, DEFAULT_HOST, sizeof(server_name) - 1);
-    server_name[sizeof(server_name) - 1] = '\0';
+    char server_name[64];
+    snprintf(server_name, sizeof(server_name), "%s", DEFAULT_HOST);
 
     port = SERVER_PORT;// 56700 di default
 
@@ -348,7 +347,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    /* Opzionale: verifica che la risposta arrivi dallo stesso IP */
+    /* verifica che la risposta arrivi dallo stesso IP */
     if (fromAddr.sin_addr.s_addr != sad.sin_addr.s_addr) {
         fprintf(stderr, "Errore: ricevuto pacchetto da sorgente sconosciuta.\n");
         closesocket(sock);
