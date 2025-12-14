@@ -92,32 +92,30 @@ void deserialize_response(const uint8_t buffer[RESP_BUFFER_SIZE], weather_respon
 }
 
 /* RISOLUZIONE DNS: gethostbyname / gethostbyaddr */
-int resolve_server(const char *host_name, struct in_addr *out_addr, char *resolved_name, size_t name_len, char *resolved_ip,   size_t ip_len)
+int resolve_dns(const char *host_name, struct in_addr *out_addr, char *resolved_name, size_t name_len, char *resolved_ip,   size_t ip_len)
 {
-    struct hostent *he;
+    struct hostent *host;
     struct in_addr addr;
 
     /* CASO 1: host_name è un NOME */
     if (isalpha((unsigned char)host_name[0])) {
 
-        /* Forward DNS: nome -> IP */
-        he = gethostbyname(host_name);
-        if (he == NULL) {
+        host = gethostbyname(host_name);
+        if (host == NULL) {
             fprintf(stderr, "gethostbyname() failed for %s\n", host_name);
             return 0;
         }
 
-        addr = *(struct in_addr *)he->h_addr_list[0];
+        addr = *(struct in_addr *)host->h_addr_list[0];
         *out_addr = addr;
 
         /* IP come stringa */
         strncpy(resolved_ip, inet_ntoa(addr), ip_len - 1);
         resolved_ip[ip_len - 1] = '\0';
 
-        /* Reverse DNS: IP -> nome canonico */
-        he = gethostbyaddr((char *)&addr, sizeof(addr), AF_INET);
-        if (he != NULL) {
-            strncpy(resolved_name, he->h_name, name_len - 1);
+        host = gethostbyaddr((char *)&addr, sizeof(addr), AF_INET);
+        if (host != NULL) {
+            strncpy(resolved_name, host->h_name, name_len - 1);
         } else {
             strncpy(resolved_name, host_name, name_len - 1);
         }
@@ -135,14 +133,12 @@ int resolve_server(const char *host_name, struct in_addr *out_addr, char *resolv
 
     *out_addr = addr;
 
-    /* IP come stringa */
     strncpy(resolved_ip, host_name, ip_len - 1);
     resolved_ip[ip_len - 1] = '\0';
 
-    /* Reverse DNS */
-    he = gethostbyaddr((char *)&addr, sizeof(addr), AF_INET);
-    if (he != NULL) {
-        strncpy(resolved_name, he->h_name, name_len - 1);
+    host = gethostbyaddr((char *)&addr, sizeof(addr), AF_INET);
+    if (host != NULL) {
+        strncpy(resolved_name, host->h_name, name_len - 1);
     } else {
         strncpy(resolved_name, host_name, name_len - 1);
     }
@@ -271,7 +267,7 @@ int main(int argc, char *argv[]) {
     char server_canonical_name[256];
     char server_ip_str[64];
 
-    if (!resolve_server(server_name,&server_addr_in,server_canonical_name, sizeof(server_canonical_name), server_ip_str, sizeof(server_ip_str))) {
+    if (!resolve_dns(server_name,&server_addr_in,server_canonical_name, sizeof(server_canonical_name), server_ip_str, sizeof(server_ip_str))) {
         clearwinsock();
         return EXIT_FAILURE;
     }
