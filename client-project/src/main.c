@@ -163,7 +163,6 @@ int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *
         /* -s server */
         if (strcmp(argv[i], "-s") == 0) {
             if (i + 1 >= argc) return 0;
-            /* copio il nome del server (max 63 char + '\0') */
             snprintf(server_ip, 64, "%s", argv[i + 1]);
             i++;
             continue;
@@ -181,68 +180,49 @@ int parse(int argc, char *argv[], char *server_ip, int *port, char *type, char *
         /* -r "type city" */
         if (strcmp(argv[i], "-r") == 0) {
             if (i + 1 >= argc) return 0;
-
             if (i + 2 != argc) return 0;
 
-            char *req_str = argv[i + 1];
+            char *req = argv[i + 1];
 
-            /* no tabulazioni '\t' */
-            for (char *q = req_str; *q; q++) {
-                if (*q == '\t' || (*q == '\\' && q[1] == 't')) {
-                    fprintf(stderr, "Errore: la richiesta non può contenere tabulazioni.\n");
-                    return 0;
-                }
+            /* TAB NON AMMESSI nella stringa -r */
+            for (const char *p = req; *p; ++p) {
+                if (*p == '\t')
+                	return -1;   // richiesta non valida
             }
 
-            char *p = req_str;
+            /* salta spazi iniziali */
+            char *p = req;
             while (*p == ' ') p++;
 
-            if (*p == '\0') {
-                fprintf(stderr, "Errore: richiesta vuota.\n");
-                return 0;
-            }
+            if (*p == '\0') return 0;
 
             char *space = strchr(p, ' ');
-            if (space == NULL) {
-                fprintf(stderr, "Errore: formato richiesta non valido (manca la città).\n");
-                return 0;
-            }
+            if (!space) return 0;
 
-            /* Il primo token (type) deve essere UN SOLO carattere */
-            if (space - p != 1) {
-                fprintf(stderr, "Errore: il primo token deve essere un singolo carattere.\n");
-                return 0;
-            }
+            if (space - p != 1) return 0;
 
             *type = p[0];
 
-            /* City = tutto ciò che segue, saltando spazi multipli */
             char *city_start = space + 1;
             while (*city_start == ' ') city_start++;
 
-            if (*city_start == '\0') {
-                fprintf(stderr, "Errore: nome città mancante.\n");
-                return 0;
+            if (*city_start == '\0') return 0;
+
+            /* se il nome della città supera 63 caratteri (64 incluso il null-terminator),
+             * il client deve segnalare un errore all'utente
+             * e NON inviare la richiesta al server*/
+            if (strlen(city_start) >= CITY_MAX) {
+                return -2;
             }
 
-            /* Controllo lunghezza città (max CITY_MAX - 1) */
-            size_t len = strlen(city_start);
-            if (len >= CITY_MAX) {
-                fprintf(stderr,
-                        "Errore: nome città troppo lungo (massimo %d caratteri).\n",
-                        CITY_MAX - 1);
-                return 0;
-            }
-
-            /* Copia city */
             strncpy(city, city_start, CITY_MAX);
             city[CITY_MAX - 1] = '\0';
+
 
             found_r = 1;
             break;
         }
 
-        /* opzione sconosciuta */
         return 0;
     }
 
@@ -273,10 +253,16 @@ int main(int argc, char *argv[]) {
 
     port = SERVER_PORT;// 56700 di default
 
-    if (!parse(argc, argv, server_name, &port, &type, city)) {
+    int r = parse(argc, argv, server_name, &port, &type, city);
+
+    if (r == 0) {
         print_usage(argv[0]);
-        clearwinsock();
         return EXIT_FAILURE;
+    }
+
+    if (r == -2) {
+    	printf("Errore: nome città troppo lungo (massimo %d caratteri).\n", CITY_MAX - 1);
+        return EXIT_SUCCESS;
     }
 
 

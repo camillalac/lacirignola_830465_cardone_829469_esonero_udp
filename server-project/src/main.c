@@ -75,20 +75,10 @@ int is_valid_city(const char* c) {
 }
 
 int is_valid_city_syntax(const char *c) {
-    for (const char *p = c; *p; ++p) {
-        unsigned char ch = (unsigned char)*p;
-
-        if (ch == '\t') {
-            return 0;  // tab vietata
-        }
-
-        if (ch == ' ' || ch == '\'') {
-            continue;
-        }
-
-        if (!isalpha(ch) && !isdigit(ch)) {
-            return 0;
-        }
+    for (const unsigned char *p = (const unsigned char*)c; *p; ++p) {
+        if (*p == '\t') return 0;        // tab vietata
+        if (*p == ' ')  continue;        // spazio ok
+        if (!isalpha(*p)) return 0;      // blocca @ # $ % 1 2 ecc.
     }
     return 1;
 }
