@@ -92,61 +92,61 @@ void deserialize_response(const uint8_t buffer[RESP_BUFFER_SIZE], weather_respon
 }
 
 /* RISOLUZIONE DNS: gethostbyname / gethostbyaddr */
-int resolve_server(const char *host_name,struct in_addr *out_addr,char *resolved_name, size_t resolved_name_len, char *resolved_ip,   size_t resolved_ip_len)
+int resolve_server(const char *host_name, struct in_addr *out_addr, char *resolved_name, size_t name_len, char *resolved_ip,   size_t ip_len)
 {
-    struct hostent *remoteHost;
+    struct hostent *he;
     struct in_addr addr;
 
-    /* SE INIZIA CON LETTERA È UN HOSTNAME */
+    /* CASO 1: host_name è un NOME */
     if (isalpha((unsigned char)host_name[0])) {
 
-        remoteHost = gethostbyname(host_name);
-
-        if (remoteHost == NULL) {
+        /* Forward DNS: nome -> IP */
+        he = gethostbyname(host_name);
+        if (he == NULL) {
             fprintf(stderr, "gethostbyname() failed for %s\n", host_name);
             return 0;
         }
 
-        /* Ricava l’indirizzo IP dal risultato */
-        struct in_addr *ina = (struct in_addr*)remoteHost->h_addr_list[0];
-        *out_addr = *ina;
+        addr = *(struct in_addr *)he->h_addr_list[0];
+        *out_addr = addr;
 
-        /* IP stringa */
-        strncpy(resolved_ip, inet_ntoa(*ina), resolved_ip_len - 1);
-        resolved_ip[resolved_ip_len - 1] = '\0';
+        /* IP come stringa */
+        strncpy(resolved_ip, inet_ntoa(addr), ip_len - 1);
+        resolved_ip[ip_len - 1] = '\0';
 
-        /* Nome canonico */
-        strncpy(resolved_name, remoteHost->h_name, resolved_name_len - 1);
-        resolved_name[resolved_name_len - 1] = '\0';
+        /* Reverse DNS: IP -> nome canonico */
+        he = gethostbyaddr((char *)&addr, sizeof(addr), AF_INET);
+        if (he != NULL) {
+            strncpy(resolved_name, he->h_name, name_len - 1);
+        } else {
+            strncpy(resolved_name, host_name, name_len - 1);
+        }
+        resolved_name[name_len - 1] = '\0';
 
         return 1;
     }
 
-    /*  ALTRIMENTI IP*/
+    /* CASO 2: host_name è un IP */
     addr.s_addr = inet_addr(host_name);
-
     if (addr.s_addr == INADDR_NONE) {
         fprintf(stderr, "Indirizzo IP non valido: %s\n", host_name);
         return 0;
     }
 
-    /* Reverse DNS */
-    remoteHost = gethostbyaddr((char*)&addr, 4, AF_INET);
-
-    if (remoteHost != NULL) {
-        strncpy(resolved_name, remoteHost->h_name, resolved_name_len - 1);
-        resolved_name[resolved_name_len - 1] = '\0';
-    } else {
-        /* Se reverse DNS fallisce usa l’IP come nome */
-        strncpy(resolved_name, host_name, resolved_name_len - 1);
-        resolved_name[resolved_name_len - 1] = '\0';
-    }
-
-    /* IP stringa = quello passato */
-    strncpy(resolved_ip, host_name, resolved_ip_len - 1);
-    resolved_ip[resolved_ip_len - 1] = '\0';
-
     *out_addr = addr;
+
+    /* IP come stringa */
+    strncpy(resolved_ip, host_name, ip_len - 1);
+    resolved_ip[ip_len - 1] = '\0';
+
+    /* Reverse DNS */
+    he = gethostbyaddr((char *)&addr, sizeof(addr), AF_INET);
+    if (he != NULL) {
+        strncpy(resolved_name, he->h_name, name_len - 1);
+    } else {
+        strncpy(resolved_name, host_name, name_len - 1);
+    }
+    resolved_name[name_len - 1] = '\0';
 
     return 1;
 }
