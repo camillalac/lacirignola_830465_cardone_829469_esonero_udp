@@ -78,7 +78,7 @@ int is_valid_city_syntax(const char *c) {
     for (const unsigned char *p = (const unsigned char*)c; *p; ++p) {
         if (*p == '\t') return 0;        // tab vietata
         if (*p == ' ')  continue;        // spazio ok
-        if (!isalpha(*p)) return 0;      // blocca @ # $ % 1 2 ecc.
+        if (!isalpha(*p) && !isdigit(*p)) return 0;      // blocca @ # $ % 1 2 ecc.
     }
     return 1;
 }
